@@ -3,18 +3,6 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 
-import { IconButton } from "@atlaskit/button/new";
-import DropdownMenu, {
-  type CustomTriggerProps,
-  DropdownItem,
-  DropdownItemGroup,
-} from "@atlaskit/dropdown-menu";
-import mergeRefs from "@atlaskit/ds-lib/merge-refs";
-import Heading from "@atlaskit/heading";
-// This is the smaller MoreIcon soon to be more easily accessible with the
-// ongoing icon project
-import MoreIcon from "@atlaskit/icon/core/migration/show-more-horizontal--editor-more";
-import { fg } from "@atlaskit/platform-feature-flags";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import {
   attachClosestEdge,
@@ -35,15 +23,7 @@ import { type ColumnType } from "../../data/people";
 
 import { useBoardContext } from "./board-context";
 import { Card } from "./card";
-import {
-  ColumnContext,
-  type ColumnContextProps,
-  useColumnContext,
-} from "./column-context";
-import { Stack as CustomStack } from "../../../../../components/Stack";
-import { Box as CustomBox } from "../../../../../components/Box";
-import { Inline as CustomInline } from "../../../../../components/Inline";
-import { Flex as CustomFlex } from "../../../../../components/Flex";
+import { ColumnContext, type ColumnContextProps } from "./column-context";
 
 /**
  * Note: not making `'is-dragging'` a `State` as it is
@@ -78,6 +58,7 @@ export const Column = memo(function Column({ column }: { column: ColumnType }) {
     invariant(columnInnerRef.current);
     invariant(headerRef.current);
     invariant(scrollableRef.current);
+
     return combine(
       registerColumn({
         columnId,
@@ -85,6 +66,7 @@ export const Column = memo(function Column({ column }: { column: ColumnType }) {
           element: columnRef.current,
         },
       }),
+
       draggable({
         element: columnRef.current,
         dragHandle: headerRef.current,
@@ -118,6 +100,7 @@ export const Column = memo(function Column({ column }: { column: ColumnType }) {
           setIsDragging(false);
         },
       }),
+
       dropTargetForElements({
         element: columnInnerRef.current,
         getData: () => ({ columnId }),
@@ -207,11 +190,10 @@ export const Column = memo(function Column({ column }: { column: ColumnType }) {
 
   return (
     <ColumnContext.Provider value={contextValue}>
-      <CustomFlex
-        testId={`column-${columnId}`}
+      <div
+        data-testid={`column-${columnId}`}
         ref={columnRef}
-        direction="column"
-        className={`w-[250px] bg-gray-100 rounded-2xl transition-all duration-300 ease-in-out relative ${
+        className={`flex flex-col w-[250px] bg-gray-100 rounded-2xl transition-all duration-300 ease-in-out relative ${
           state.type === "idle"
             ? "cursor-grab"
             : state.type === "is-card-over"
@@ -225,45 +207,40 @@ export const Column = memo(function Column({ column }: { column: ColumnType }) {
           We are using a separate element so we can have two drop targets
           that take up the same visual space (one for cards, one for columns)
         */}
-        <CustomStack className="min-h-0 grow" ref={columnInnerRef}>
-          <CustomStack
-            className={`min-h-0 grow ${isDragging ? "opacity-40" : ""}`}
+        <div className="flex flex-col min-h-0 grow" ref={columnInnerRef}>
+          <div
+            className={`flex flex-col min-h-0 grow ${
+              isDragging ? "opacity-40" : ""
+            }`}
           >
-            <CustomInline
-              className="ps-4 pe-4 pt-2 text-gray-500 select-none"
+            <div
+              className="flex flex-row justify-between items-center ps-4 pe-4 pt-2 text-gray-500 select-none"
               ref={headerRef}
-              testId={`column-header-${columnId}`}
-              spread="space-between"
-              alignBlock="center"
+              data-testid={`column-header-${columnId}`}
             >
-              <Heading
-                size="xxsmall"
-                as="span"
-                testId={`column-header-title-${columnId}`}
+              <span
+                className="text-xs font-semibold"
+                data-testid={`column-header-title-${columnId}`}
               >
                 {column.title}
-              </Heading>
-              <ActionMenu />
-            </CustomInline>
-            <CustomBox className="h-full overflow-y-auto" ref={scrollableRef}>
-              <CustomStack
-                className="box-border min-h-full p-2"
-                space="space.100"
-              >
+              </span>
+            </div>
+            <div className="h-full overflow-y-auto" ref={scrollableRef}>
+              <div className="flex flex-col box-border min-h-full p-2 gap-2">
                 {column.items.map((item) => (
                   <Card item={item} key={item.userId} />
                 ))}
-              </CustomStack>
-            </CustomBox>
-          </CustomStack>
-        </CustomStack>
+              </div>
+            </div>
+          </div>
+        </div>
         {state.type === "is-column-over" && state.closestEdge && (
           <DropIndicator
             edge={state.closestEdge}
             gap={token("space.200", "0")}
           />
         )}
-      </CustomFlex>
+      </div>
       {state.type === "generate-safari-column-preview"
         ? createPortal(<SafariColumnPreview column={column} />, state.container)
         : null}
@@ -273,77 +250,8 @@ export const Column = memo(function Column({ column }: { column: ColumnType }) {
 
 function SafariColumnPreview({ column }: { column: ColumnType }) {
   return (
-    <CustomBox className="w-[250px] bg-gray-100 rounded ps-4 pe-4 pt-2 p-4 text-gray-500 select-none">
-      <Heading size="xxsmall" as="span">
-        {column.title}
-      </Heading>
-    </CustomBox>
-  );
-}
-
-function ActionMenu() {
-  return (
-    <DropdownMenu
-      trigger={DropdownMenuTrigger}
-      shouldRenderToParent={fg(
-        "should-render-to-parent-should-be-true-design-syst"
-      )}
-    >
-      <ActionMenuItems />
-    </DropdownMenu>
-  );
-}
-
-function ActionMenuItems() {
-  const { columnId } = useColumnContext();
-  const { getColumns, reorderColumn } = useBoardContext();
-
-  const columns = getColumns();
-  const startIndex = columns.findIndex(
-    (column) => column.columnId === columnId
-  );
-
-  const moveLeft = useCallback(() => {
-    reorderColumn({
-      startIndex,
-      finishIndex: startIndex - 1,
-    });
-  }, [reorderColumn, startIndex]);
-
-  const moveRight = useCallback(() => {
-    reorderColumn({
-      startIndex,
-      finishIndex: startIndex + 1,
-    });
-  }, [reorderColumn, startIndex]);
-
-  const isMoveLeftDisabled = startIndex === 0;
-  const isMoveRightDisabled = startIndex === columns.length - 1;
-
-  return (
-    <DropdownItemGroup>
-      <DropdownItem onClick={moveLeft} isDisabled={isMoveLeftDisabled}>
-        Move left
-      </DropdownItem>
-      <DropdownItem onClick={moveRight} isDisabled={isMoveRightDisabled}>
-        Move right
-      </DropdownItem>
-    </DropdownItemGroup>
-  );
-}
-
-function DropdownMenuTrigger({
-  triggerRef,
-  ...triggerProps
-}: CustomTriggerProps) {
-  return (
-    <IconButton
-      ref={mergeRefs([triggerRef])}
-      appearance="subtle"
-      label="Actions"
-      spacing="compact"
-      icon={(iconProps) => <MoreIcon {...iconProps} size="small" />}
-      {...triggerProps}
-    />
+    <div className="w-[250px] bg-gray-100 rounded ps-4 pe-4 pt-2 p-4 text-gray-500 select-none">
+      <span className="text-xs font-semibold">{column.title}</span>
+    </div>
   );
 }

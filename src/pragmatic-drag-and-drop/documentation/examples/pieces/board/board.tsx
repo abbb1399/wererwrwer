@@ -1,6 +1,5 @@
 import { forwardRef, memo, type ReactNode, useEffect } from "react";
 import { autoScrollWindowForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
-import { Box } from "../../../../../components";
 import { useBoardContext } from "./board-context";
 
 type BoardProps = {
@@ -18,9 +17,9 @@ const Board = forwardRef<HTMLDivElement, BoardProps>(
     }, [instanceId]);
 
     return (
-      <Box className="flex flex-col gap-4" ref={ref}>
+      <div className="flex flex-col gap-4" ref={ref}>
         {children}
-      </Box>
+      </div>
     );
   }
 );

@@ -23,12 +23,6 @@ import invariant from "tiny-invariant";
 
 type Outcome =
   | {
-      type: "column-reorder";
-      columnId: string;
-      startIndex: number;
-      finishIndex: number;
-    }
-  | {
       type: "card-reorder";
       columnId: string;
       startIndex: number;
@@ -63,6 +57,9 @@ function App() {
     };
   });
 
+  console.log(data);
+
+  // "escape hatch" 패턴
   const stableData = useRef(data);
 
   useEffect(() => {
@@ -79,18 +76,7 @@ function App() {
     }
     const { outcome, trigger } = lastOperation;
 
-    if (outcome.type === "column-reorder") {
-      const { finishIndex } = outcome;
-
-      const { columnMap, orderedColumnIds } = stableData.current;
-      const sourceColumn = columnMap[orderedColumnIds[finishIndex]];
-
-      const entry = registry.getColumn(sourceColumn.columnId);
-      triggerPostMoveFlash(entry.element);
-
-      return;
-    }
-
+    // 같은 그룹내 카드 이동
     if (outcome.type === "card-reorder") {
       const { columnId, finishIndex } = outcome;
 
@@ -108,6 +94,7 @@ function App() {
       return;
     }
 
+    // 다른 그룹으로 카드 이동
     if (outcome.type === "card-move") {
       const { finishColumnId, itemIndexInFinishColumn } = outcome;
 
@@ -136,41 +123,6 @@ function App() {
     const { columnMap, orderedColumnIds } = stableData.current;
     return orderedColumnIds.map((columnId) => columnMap[columnId]);
   }, []);
-
-  const reorderColumn = useCallback(
-    ({
-      startIndex,
-      finishIndex,
-      trigger = "keyboard",
-    }: {
-      startIndex: number;
-      finishIndex: number;
-      trigger?: Trigger;
-    }) => {
-      setData((data) => {
-        const outcome: Outcome = {
-          type: "column-reorder",
-          columnId: data.orderedColumnIds[startIndex],
-          startIndex,
-          finishIndex,
-        };
-
-        return {
-          ...data,
-          orderedColumnIds: reorder({
-            list: data.orderedColumnIds,
-            startIndex,
-            finishIndex,
-          }),
-          lastOperation: {
-            outcome,
-            trigger: trigger,
-          },
-        };
-      });
-    },
-    []
-  );
 
   const reorderCard = useCallback(
     ({
@@ -240,6 +192,7 @@ function App() {
       if (startColumnId === finishColumnId) {
         return;
       }
+
       setData((data) => {
         const sourceColumn = data.columnMap[startColumnId];
         const destinationColumn = data.columnMap[finishColumnId];
@@ -302,26 +255,23 @@ function App() {
           // 2. move to new position
 
           if (source.data.type === "column") {
-            const startIndex: number = data.orderedColumnIds.findIndex(
-              (columnId) => columnId === source.data.columnId
-            );
-
-            const target = location.current.dropTargets[0];
-            const indexOfTarget: number = data.orderedColumnIds.findIndex(
-              (id) => id === target.data.columnId
-            );
-            const closestEdgeOfTarget: Edge | null = extractClosestEdge(
-              target.data
-            );
-
-            const finishIndex = getReorderDestinationIndex({
-              startIndex,
-              indexOfTarget,
-              closestEdgeOfTarget,
-              axis: "horizontal",
-            });
-
-            reorderColumn({ startIndex, finishIndex, trigger: "pointer" });
+            // const startIndex: number = data.orderedColumnIds.findIndex(
+            //   (columnId) => columnId === source.data.columnId
+            // );
+            // const target = location.current.dropTargets[0];
+            // const indexOfTarget: number = data.orderedColumnIds.findIndex(
+            //   (id) => id === target.data.columnId
+            // );
+            // const closestEdgeOfTarget: Edge | null = extractClosestEdge(
+            //   target.data
+            // );
+            // const finishIndex = getReorderDestinationIndex({
+            //   startIndex,
+            //   indexOfTarget,
+            //   closestEdgeOfTarget,
+            //   axis: "horizontal",
+            // });
+            // reorderColumn({ startIndex, finishIndex, trigger: "pointer" });
           }
           // Dragging a card
           if (source.data.type === "card") {
@@ -421,19 +371,18 @@ function App() {
         },
       })
     );
-  }, [data, instanceId, moveCard, reorderCard, reorderColumn]);
+  }, [data, instanceId, moveCard, reorderCard]);
 
   const contextValue: BoardContextValue = useMemo(() => {
     return {
       getColumns,
-      reorderColumn,
       reorderCard,
       moveCard,
       registerCard: registry.registerCard,
       registerColumn: registry.registerColumn,
       instanceId,
     };
-  }, [getColumns, reorderColumn, reorderCard, registry, moveCard, instanceId]);
+  }, [getColumns, reorderCard, registry, moveCard, instanceId]);
 
   return (
     <BoardContext.Provider value={contextValue}>

@@ -19,7 +19,6 @@ import DropdownMenu, {
   DropdownItemGroup,
 } from "@atlaskit/dropdown-menu";
 import mergeRefs from "@atlaskit/ds-lib/merge-refs";
-import Heading from "@atlaskit/heading";
 // This is the smaller MoreIcon soon to be more easily accessible with the
 // ongoing icon project
 import MoreIcon from "@atlaskit/icon/core/migration/show-more-horizontal--editor-more";
@@ -44,10 +43,6 @@ import { type ColumnType, type Person } from "../../data/people";
 
 import { useBoardContext } from "./board-context";
 import { useColumnContext } from "./column-context";
-
-import { Box as CustomBox } from "../../../../../components/Box";
-import { Grid as CustomGrid } from "../../../../../components/Grid";
-import { Stack as CustomStack } from "../../../../../components/Stack";
 
 type State =
   | { type: "idle" }
@@ -154,33 +149,32 @@ const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(
     const { avatarUrl, name, role, userId } = item;
 
     return (
-      <CustomGrid
+      <div
         ref={ref}
-        testId={`item-${userId}`}
-        templateColumns="auto 1fr auto"
-        columnGap="space.100"
-        alignItems="center"
-        className={`w-full p-2 bg-white rounded-lg relative hover:bg-gray-50 ${
+        data-testid={`item-${userId}`}
+        className={`grid items-center w-full p-2 bg-white rounded-lg relative hover:bg-gray-50 ${
           state.type === "idle"
             ? "cursor-grab shadow-md"
             : state.type === "dragging"
             ? "opacity-40 shadow-md"
             : ""
         }`}
+        style={{
+          gridTemplateColumns: "auto 1fr auto",
+          columnGap: "0.5rem",
+        }}
       >
-        <CustomBox as="span" className="pointer-events-none">
+        <span className="pointer-events-none">
           <Avatar size="large" src={avatarUrl} />
-        </CustomBox>
+        </span>
 
-        <CustomStack space="space.050" grow="fill">
-          <Heading size="xsmall" as="span">
+        <div className="flex flex-col gap-1 grow">
+          <span className="text-sm font-semibold">
             {name}
-          </Heading>
-          <CustomBox as="small" className="m-0">
-            {role}
-          </CustomBox>
-        </CustomStack>
-        <CustomBox className="self-start">
+          </span>
+          <small className="m-0">{role}</small>
+        </div>
+        <div className="self-start">
           <DropdownMenu
             trigger={({ triggerRef, ...triggerProps }) => (
               <IconButton
@@ -203,11 +197,11 @@ const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(
           >
             <LazyDropdownItems userId={userId} />
           </DropdownMenu>
-        </CustomBox>
+        </div>
         {closestEdge && (
           <DropIndicator edge={closestEdge} gap={token("space.100", "0")} />
         )}
-      </CustomGrid>
+      </div>
     );
   }
 );
@@ -309,7 +303,7 @@ export const Card = memo(function Card({ item }: { item: Person }) {
       />
       {state.type === "preview" &&
         ReactDOM.createPortal(
-          <CustomBox
+          <div
             style={{
               /**
                * Ensuring the preview has the same dimensions as the original.
@@ -323,7 +317,7 @@ export const Card = memo(function Card({ item }: { item: Person }) {
             }}
           >
             <CardPrimitive item={item} state={state} closestEdge={null} />
-          </CustomBox>,
+          </div>,
           state.container
         )}
     </Fragment>
